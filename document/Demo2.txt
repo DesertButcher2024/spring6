@@ -1,0 +1,87 @@
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi</artifactId>
+    <version>5.2.3</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>5.2.3</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.commons</groupId>
+    <artifactId>commons-collections4</artifactId>
+    <version>4.4</version>
+</dependency>
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class ExcelFileReader {
+    private static final int MAX_CHUNK_SIZE = 10000; // 每次读取最大字符数
+
+    public static void main(String[] args) {
+        String filePath = "path/to/your/largefile.xlsx";
+        StringBuilder currentChunk = new StringBuilder();
+
+        try (FileInputStream fis = new FileInputStream(new File(filePath));
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            // 获取第一个工作表
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // 遍历每一行
+            for (Row row : sheet) {
+                StringBuilder rowContent = new StringBuilder();
+
+                // 遍历当前行的每一列
+                for (Cell cell : row) {
+                    rowContent.append(cellToString(cell)).append(" "); // 将单元格内容转为字符串并拼接
+                }
+
+                // 拼接当前行内容
+                currentChunk.append(rowContent.toString());
+
+                // 如果当前数据超过了最大字符数限制，处理数据
+                if (currentChunk.length() >= MAX_CHUNK_SIZE) {
+                    processChunk(currentChunk.toString());
+                    currentChunk.setLength(0); // 清空当前数据块
+                }
+            }
+
+            // 处理剩余未满10000字符的数据块
+            if (currentChunk.length() > 0) {
+                processChunk(currentChunk.toString());
+            }
+
+        } catch (IOException | InvalidFormatException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 处理每次读取到的块数据
+    private static void processChunk(String chunkData) {
+        System.out.println("Processing chunk of data:");
+        System.out.println(chunkData); // 可以在这里添加其他处理逻辑，如保存到数据库等
+    }
+
+    // 将单元格内容转换为字符串
+    private static String cellToString(Cell cell) {
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return "";
+        }
+    }
+}
